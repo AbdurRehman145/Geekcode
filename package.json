@@ -1,0 +1,19 @@
+{
+  "name": "geekcode",
+  "version": "1.0.0",
+  "description": "DSA platform",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbdurRehman145/Geekcode.git"
+  },
+  "author": "Abdur Rehman",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AbdurRehman145/Geekcode/issues"
+  },
+  "homepage": "https://github.com/AbdurRehman145/Geekcode#readme"
+}
