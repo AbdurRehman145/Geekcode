@@ -4,7 +4,7 @@
   "description": "DSA platform",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon server.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,11 @@
   "bugs": {
     "url": "https://github.com/AbdurRehman145/Geekcode/issues"
   },
-  "homepage": "https://github.com/AbdurRehman145/Geekcode#readme"
+  "homepage": "https://github.com/AbdurRehman145/Geekcode#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "mongoose": "^8.17.1",
+    "nodemon": "^3.1.10",
+    "redis": "^5.8.0"
+  }
 }
