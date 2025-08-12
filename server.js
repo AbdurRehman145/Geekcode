@@ -1,42 +1,78 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const {client, startRedis} = require('./redisClient');
 const Problem = require('./models/Problem');
 const Submission = require('./models/Submission');
 
-mongoose.connect('mongodb://localhost:27017/');
-
-const app = express();
+mongoose.connect('mongodb://localhost:27017/Geekcode')
 
 
-app.get('/', (req, res) => {
-    res.send("hello");
-})
+async function startServer(){
+    const app = express(); 
+    app.use(express.json());
 
-app.get('/api/problems', async (req, res) => {
-    let problems = [];
+    await startRedis();
 
-    try{
-        problems = await Problem.find();
-        console.log(`${problems}`);
-    }catch(e) {
-        console.log(`${e.message}`);
-        res.status(500).send({ error: "Failed to fetch problems"});
-    }
+    app.get('/', (req, res) => {
+        res.send("hello");
+    })
 
-    res.send(problems);
-})
+    app.get('/api/problems', async (req, res) => {
+        let problems = [];
 
-app.get('/api/problems/:id', async (req, res) => {
-    //const id = req.params.id;
-    let problem = {};
-    try{
-        problem = await Problem.find().where('_id').equals(req.params.id);
-        console.log(`${problem}`);
-    }catch(e) {
-        res.status(500).send({error: "Problem not found"});
-    }
-    res.send(problem);
-})
+        try{
+            problems = await Problem.find();
+            console.log(`${problems}`);
+        }catch(e) {
+            console.log(`${e.message}`);
+            res.status(500).send({ error: "Failed to fetch problems"});
+        }
 
-app.listen(3000, () => console.log("server running on port 3000"));
+        res.send(problems);
+    })
 
+    app.get('/api/problems/:id', async (req, res) => {
+        const id = req.params.id;
+        let problem = {};
+        try{
+            problem = await Problem.find().where('_id').equals(id);
+            console.log(`${problem}`);
+        }catch(e) {
+            res.status(500).send({error: "Problem not found"});
+        }
+        res.send(problem);
+    })
+
+    app.post('/api/submissions', async (req, res) => {
+        try{
+            const {problemId, language, code, status, output, submittedAt} = req.body;
+
+            if(!problemId || !language || !code || !status) {
+                res.status(400).send({ error: "Incomplete submission data"});
+            }
+
+            const submission = new Submission({
+                problemId,
+                language,
+                code,
+                status,
+                output,
+                submittedAt
+            })
+
+            const newSubmission = await submission.save();
+
+            await client.lPush('jobQueue', newSubmission.id);
+
+            res.status(201).send(newSubmission);
+        }catch(err) {
+            console.log(err)
+            res.status(400).send({error: `Failed to save submission: ${err.message}`});
+        }
+    })
+
+    app.listen(3000, () => console.log("server running on port 3000"));
+}
+
+
+startServer();

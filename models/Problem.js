@@ -28,10 +28,12 @@ const problemSchema = new mongoose.Schema({
         Javascript:  String,
         Python:  String
     },
-    testCases: {
-        input: mongoose.Schema.Types.Mixed,
-        output: mongoose.Schema.Types.Mixed
-    }
+    testCases: [
+        {
+            input: mongoose.Schema.Types.Mixed,
+            output: mongoose.Schema.Types.Mixed
+        }
+    ]
 })
 
 

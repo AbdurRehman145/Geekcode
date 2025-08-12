@@ -16,10 +16,12 @@ const sampleProblems = [
             Javascript: `/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function(nums, target) {\n    // Your code here\n};`,
             Python: `class Solution(object):\n\tdef twoSum(self, nums, target):\n\t\t# Your code here`
         },
-        testCases: {
-            input: "nums = [2,7,11,15], target = 9",
-            output: "[0,1]"
-        }
+        testCases: [
+            {
+                input: "nums = [2,7,11,15], target = 9",
+                output: "[0,1]"
+            }
+        ]
     },
     {
         title: "Palindrome Number",
@@ -30,10 +32,12 @@ const sampleProblems = [
         starterCode: {
             Javascript: `/**\n * @param {number} x\n * @return {boolean}\n */\nvar isPalindrome = function(x) {\n    // Your code here\n};`
         },
-        testCases: {
-            input: "x = 121",
-            output: "true"
-        }
+        testCases: [
+            {
+                input: "x = 121",
+                output: "true"
+            }
+        ]
     },
     {
         title: "Median of Two Sorted Arrays",
@@ -44,10 +48,12 @@ const sampleProblems = [
         starterCode: {
             Python: `class Solution(object):\n\tdef findMedianSortedArrays(self, nums1, nums2):\n\t\t# Your code here`
         },
-        testCases: {
-            input: "nums1 = [1,3], nums2 = [2]",
-            output: "2.00000"
-        }
+        testCases: [
+            {
+                input: "nums1 = [1,3], nums2 = [2]",
+                output: "2.00000"
+            }
+        ]
     }
 ];
 
@@ -58,35 +64,35 @@ async function seedDatabase() {
     try {
         // Connect to the database
         await mongoose.connect(MONGO_URI);
-        console.log("✅ MongoDB connection successful.");
+        console.log("MongoDB connection successful.");
 
         // Clear existing data
-        console.log("🧹 Clearing old data...");
+        console.log("Clearing old data");
         await Problem.deleteMany({});
         await Submission.deleteMany({});
         console.log("Data cleared.");
 
         // Insert new problems
-        console.log("🌱 Seeding problems...");
+        console.log("Seeding problems");
         const createdProblems = await Problem.insertMany(sampleProblems);
         console.log(`${createdProblems.length} problems created.`);
 
         // Create submissions that reference the new problems
         const sampleSubmissions = [
             {
-                problemId: createdProblems[0]._id, // Refers to "Two Sum"
+                problemId: createdProblems[0]._id, 
                 language: "Javascript",
                 code: `var twoSum = function(nums, target) { /* ... implementation ... */ };`,
                 status: "Accepted"
             },
             {
-                problemId: createdProblems[0]._id, // Another submission for "Two Sum"
+                problemId: createdProblems[0]._id, 
                 language: "Python",
                 code: `class Solution:\n\tdef twoSum(self, nums, target):\n\t\t# Incomplete\n\t\tpass`,
                 status: "Wrong Answer"
             },
             {
-                problemId: createdProblems[2]._id, // Refers to "Median of Two Sorted Arrays"
+                problemId: createdProblems[2]._id,
                 language: "Python",
                 code: `class Solution(object):\n\tdef findMedianSortedArrays(self, nums1, nums2):\n\t\t# Some code here\n\t\treturn 2.0`,
                 status: "Time Limit Exceeded",
@@ -95,18 +101,18 @@ async function seedDatabase() {
         ];
 
         // Insert new submissions
-        console.log("🌱 Seeding submissions...");
+        console.log("Seeding submissions...");
         const createdSubmissions = await Submission.insertMany(sampleSubmissions);
         console.log(`${createdSubmissions.length} submissions created.`);
 
         console.log("\nDatabase seeded successfully! 🎉");
 
     } catch (error) {
-        console.error("❌ Error seeding database:", error);
+        console.error("Error seeding database:", error);
     } finally {
         // Disconnect from the database
         await mongoose.disconnect();
-        console.log("🔌 MongoDB disconnected.");
+        console.log("MongoDB disconnected.");
     }
 }
 
