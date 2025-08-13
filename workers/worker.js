@@ -71,4 +71,170 @@ class CodeExecutionWorket {
         }
     }
 
+    async executeCode(submission, problem){
+        const {language, code} = submission;
+        const {testCases} = problem;
+
+        try {
+            const allPassed = true;
+            let output = '';
+
+            for(let i = 0; i<testCases.length; i++){
+                const testCase = testCases[i];
+
+                console.log(`Running test case ${i+1}/${testCases.length}`);
+
+                const result = await this.runSingleTest(code, language, testCase);
+
+                if(result.status !== 'passed'){
+                    allPassed = false;
+                    output = result.output;
+
+                    if(result.satus === 'timeout'){
+                        return {
+                            status: "Time Limit Exceeded",
+                            output
+                        };
+                    }
+                    else {
+                        return {
+                            status: "Wrong Answers",
+                            output
+                        }
+                    }
+                }
+            }
+
+            return {
+                status: 'Accepted',
+                output: 'All test cases passed'
+            }
+        } catch(err) {
+            return {
+                status: 'Error',
+                output: err.message
+            }
+        }
+
+    }
+
+    async runSingleTest(code, language, testCase){
+        const dockerImage = this.getDockerImage(language);
+        const filename = this.getFileName(language);
+        const filePath = path.join(this.temDir, fileName);
+
+        try {
+
+            fs.writeFileSync(filePath, code);
+            
+            const inputPath = path.join(this.temDir, 'input.txt');
+            fs.writeFileSync(inputPath, JSON.stringify(testCase.input));
+
+            const dockerCmd = this.buildDockerCommand(dockerImage, language, filename);
+
+            console.log('Running Docker command:', dockerCmd);
+
+            const result = await this.executeWithTimeout(dockerCmd, 5000);
+
+            const actualOutput = result.stdout.trim();
+            const expectedOutput = JSON.stringify(testCase.output).replace(/"/g, '');
+
+            if(actualOutput === expectedOutput){
+                return{
+                    status: 'passed',
+                    output: actualOutput
+                };
+            }
+            else {
+                return {
+                    status: 'failed',
+                    output: `Expected: ${expectedOutput} Got: ${actualOutput}`
+                };
+            }
+        } catch(err) {
+            if(err.message.include('timeout')){
+                return {
+                    status: 'timeout',
+                    output: 'Time Limit Exceeded'
+                };
+            }
+            return {
+                status: 'error',
+                output: error.message
+            };
+        } finally {
+            this.cleanupFiles([filePath, path.join(this.tempDir, 'input.txt')]);
+        }
+    }
+
+   
+    getDockerImage(language) {
+        const images = {
+            'Python': 'python:3.9-slim',
+            'Javascript': 'node:16-slim',
+            'Cpp': 'gcc:9'
+        };
+        return images[language] || 'ubuntu:20.04';
+    }
+
+    
+    getFileName(language) {
+        const extensions = {
+            'Python': 'solution.py',
+            'Javascript': 'solution.js',
+            'Cpp': 'solution.cpp'
+        };
+        return extensions[language] || 'solution.txt';
+    }
+
+    
+    buildDockerCommand(dockerImage, language, fileName) {
+        const tempDir = this.tempDir;
+        
+        const commands = {
+            'Python': `docker run --rm -v ${tempDir}:/app -w /app ${dockerImage} python ${fileName}`,
+            'Javascript': `docker run --rm -v ${tempDir}:/app -w /app ${dockerImage} node ${fileName}`,
+            'Cpp': `docker run --rm -v ${tempDir}:/app -w /app ${dockerImage} bash -c "g++ -o solution ${fileName} && ./solution"`
+        };
+        
+        return commands[language] || `docker run --rm -v ${tempDir}:/app -w /app ${dockerImage} cat ${fileName}`;
+    }
+
+   
+    executeWithTimeout(command, timeout) {
+        return new Promise((resolve, reject) => {
+            const process = exec(command, (error, stdout, stderr) => {
+                if (error) {
+                    reject(new Error(stderr || error.message));
+                } else {
+                    resolve({ stdout, stderr });
+                }
+            });
+
+
+            setTimeout(() => {
+                process.kill('SIGKILL');
+                reject(new Error('timeout'));
+            }, timeout);
+        });
+    }
+
+    
+    cleanupFiles(filePaths) {
+        filePaths.forEach(filePath => {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        });
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
 }
+
+const worker = new CodeExecutionWorker();
+worker.start().catch(console.error);
+
+module.exports = CodeExecutionWorker;
