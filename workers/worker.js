@@ -7,7 +7,7 @@ const path = require('path');
 const Problem = require('./models/Problem');
 const Submission = require('./models/Submission');
 
-class CodeExecutionWorket {
+class CodeExecutionWorker {
     constructor(){
         this.redisClient = redis.createClient({
             host: 'localhost',
@@ -17,11 +17,10 @@ class CodeExecutionWorket {
         mongoose.connect('mongodb://localhost:27017/Geekcode');
 
         this.tempDir = path.join(__dirname, 'temp');
-        if(!fs.existsSync(temDir)){
-            fs.mkdirSync(tempDir);
+        if(!fs.existsSync(this.tempDir)){
+            fs.mkdirSync(this.tempDir);
         }
     }
-
     async start(){
         console.log("Worker started and waiting for jobs");
 
@@ -29,7 +28,7 @@ class CodeExecutionWorket {
             try{
                 const submissionId = await this.redisClient.brPop('jobQueue', 0);
                 if(submissionId && submissionId[1]){
-                    await this.processSubmission(submissionId);
+                    await this.processSubmission(submissionId[1]);
                 }
             } catch(err) {
                 console.log(`Error in worker loop: ${err.message}`)
@@ -50,7 +49,7 @@ class CodeExecutionWorket {
             }
 
             const problem = await Problem.findById(submission.problemId);
-            if(!problem){
+            if(!problem){ 
                 throw new Error("Problem not found");
             }
 
@@ -76,8 +75,8 @@ class CodeExecutionWorket {
         const {testCases} = problem;
 
         try {
-            const allPassed = true;
-            let output = '';
+            let allPassed = true;
+            let outputs = [];
 
             for(let i = 0; i<testCases.length; i++){
                 const testCase = testCases[i];
@@ -86,20 +85,22 @@ class CodeExecutionWorket {
 
                 const result = await this.runSingleTest(code, language, testCase);
 
+                outputs.push(result.output);
+
                 if(result.status !== 'passed'){
                     allPassed = false;
-                    output = result.output;
+                    let output = result.output;
 
-                    if(result.satus === 'timeout'){
+                    if(result.status === 'timeout'){
                         return {
                             status: "Time Limit Exceeded",
-                            output
+                            outputs
                         };
                     }
                     else {
                         return {
-                            status: "Wrong Answers",
-                            output
+                            status: "Wrong Answer",
+                            outputs
                         }
                     }
                 }
@@ -107,7 +108,7 @@ class CodeExecutionWorket {
 
             return {
                 status: 'Accepted',
-                output: 'All test cases passed'
+                output: outputs
             }
         } catch(err) {
             return {
@@ -121,13 +122,13 @@ class CodeExecutionWorket {
     async runSingleTest(code, language, testCase){
         const dockerImage = this.getDockerImage(language);
         const filename = this.getFileName(language);
-        const filePath = path.join(this.temDir, fileName);
+        const filePath = path.join(this.tempDir, filename);
 
         try {
 
             fs.writeFileSync(filePath, code);
             
-            const inputPath = path.join(this.temDir, 'input.txt');
+            const inputPath = path.join(this.tempDir, 'input.txt');
             fs.writeFileSync(inputPath, JSON.stringify(testCase.input));
 
             const dockerCmd = this.buildDockerCommand(dockerImage, language, filename);
@@ -148,11 +149,11 @@ class CodeExecutionWorket {
             else {
                 return {
                     status: 'failed',
-                    output: `Expected: ${expectedOutput} Got: ${actualOutput}`
+                    output: actualOutput
                 };
             }
         } catch(err) {
-            if(err.message.include('timeout')){
+            if(err.message.includes('timeout')){
                 return {
                     status: 'timeout',
                     output: 'Time Limit Exceeded'
@@ -160,7 +161,7 @@ class CodeExecutionWorket {
             }
             return {
                 status: 'error',
-                output: error.message
+                output: err.message
             };
         } finally {
             this.cleanupFiles([filePath, path.join(this.tempDir, 'input.txt')]);

@@ -19,9 +19,11 @@ const submissionSchema = new mongoose.Schema({
         enum: ["Pending", "Processing", "Accepted", "Time Limit Exceeded", "Wrong Answer", "Error"],
         required: true
     },
-    output: {
-        type: String
-    },
+    output: [
+        {
+            type: String
+        }
+    ],
     submittedAt:{
         type: Date,
         default: () => new Date()
