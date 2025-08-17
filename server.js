@@ -35,10 +35,10 @@ async function startServer(){
         const id = req.params.id;
         let problem = {};
         try{
-            problem = await Problem.find().where('_id').equals(id);
+            problem = await Problem.findById(id);
             console.log(`${problem}`);
         }catch(e) {
-            res.status(500).send({error: "Problem not found"});
+           return res.status(500).send({error: "Problem not found"});
         }
         res.send(problem);
     })
@@ -48,7 +48,7 @@ async function startServer(){
             const {problemId, language, code, status, output, submittedAt} = req.body;
 
             if(!problemId || !language || !code || !status) {
-                res.status(400).send({ error: "Incomplete submission data"});
+                return res.status(400).send({ error: "Incomplete submission data"});
             }
 
             const submission = new Submission({
@@ -64,10 +64,10 @@ async function startServer(){
 
             await client.lPush('jobQueue', newSubmission.id);
 
-            res.status(201).send(newSubmission);
+            return res.status(201).send(newSubmission);
         }catch(err) {
             console.log(err)
-            res.status(400).send({error: `Failed to save submission: ${err.message}`});
+            return res.status(400).send({error: `Failed to save submission: ${err.message}`});
         }
     })
 

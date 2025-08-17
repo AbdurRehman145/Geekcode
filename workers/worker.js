@@ -4,15 +4,22 @@ const {exec} = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const Problem = require('./models/Problem');
-const Submission = require('./models/Submission');
+const Problem = require('../models/Problem');
+const Submission = require('../models/Submission');
 
 class CodeExecutionWorker {
     constructor(){
-        this.redisClient = redis.createClient({
-            host: 'localhost',
-            port: 6379
+        this.redisClient = redis.createClient();
+
+        this.redisClient.on('error', (err) => {
+            console.log(`Redis client error: ${err}`);
         });
+
+        this.redisClient.on('connect', () => {
+            console.log('Worker connected to Redis');
+        });
+
+        this.redisClient.connect();
 
         mongoose.connect('mongodb://localhost:27017/Geekcode');
 
@@ -22,13 +29,19 @@ class CodeExecutionWorker {
         }
     }
     async start(){
+
+        if (!this.redisClient.isOpen) {
+            await this.redisClient.connect();
+            console.log("Worker connected to Redis");
+        }
         console.log("Worker started and waiting for jobs");
 
         while(true){
             try{
-                const submissionId = await this.redisClient.brPop('jobQueue', 0);
-                if(submissionId && submissionId[1]){
-                    await this.processSubmission(submissionId[1]);
+                const submissionId = await this.redisClient.blPop('jobQueue', 0);
+                if(submissionId && submissionId.element){
+                    console.log(`Received job: ${submissionId.element}`);
+                    await this.processSubmission(submissionId.element);
                 }
             } catch(err) {
                 console.log(`Error in worker loop: ${err.message}`)
@@ -94,13 +107,13 @@ class CodeExecutionWorker {
                     if(result.status === 'timeout'){
                         return {
                             status: "Time Limit Exceeded",
-                            outputs
+                            output: outputs
                         };
                     }
                     else {
                         return {
                             status: "Wrong Answer",
-                            outputs
+                            output: outputs
                         }
                     }
                 }
@@ -129,7 +142,7 @@ class CodeExecutionWorker {
             fs.writeFileSync(filePath, code);
             
             const inputPath = path.join(this.tempDir, 'input.txt');
-            fs.writeFileSync(inputPath, JSON.stringify(testCase.input));
+            fs.writeFileSync(inputPath, testCase.input.toString());
 
             const dockerCmd = this.buildDockerCommand(dockerImage, language, filename);
 
@@ -138,7 +151,7 @@ class CodeExecutionWorker {
             const result = await this.executeWithTimeout(dockerCmd, 5000);
 
             const actualOutput = result.stdout.trim();
-            const expectedOutput = JSON.stringify(testCase.output).replace(/"/g, '');
+            const expectedOutput = testCase.output.toString().trim();
 
             if(actualOutput === expectedOutput){
                 return{
