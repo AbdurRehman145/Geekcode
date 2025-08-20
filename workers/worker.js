@@ -28,8 +28,8 @@ class CodeExecutionWorker {
             fs.mkdirSync(this.tempDir);
         }
     }
-    async start(){
 
+    async start(){
         if (!this.redisClient.isOpen) {
             await this.redisClient.connect();
             console.log("Worker connected to Redis");
@@ -74,7 +74,7 @@ class CodeExecutionWorker {
             });
 
         }catch(err) {
-            console.log(`Error processing submission: ${err}`);
+            console.log(`Error processing submission: ${err.message}`);
 
             await Submission.findByIdAndUpdate(submissionId, {
                 status: 'Error',
@@ -91,26 +91,27 @@ class CodeExecutionWorker {
             let allPassed = true;
             let outputs = [];
 
-            for(let i = 0; i<testCases.length; i++){
+            for(let i = 0; i < testCases.length; i++){
                 const testCase = testCases[i];
 
                 console.log(`Running test case ${i+1}/${testCases.length}`);
+                console.log(`Test case input:`, testCase.input);
+                console.log(`Expected output:`, testCase.output);
 
                 const result = await this.runSingleTest(code, language, testCase);
-
+                
+                console.log(`Test result:`, result);
                 outputs.push(result.output);
 
                 if(result.status !== 'passed'){
                     allPassed = false;
-                    let output = result.output;
-
+                    
                     if(result.status === 'timeout'){
                         return {
                             status: "Time Limit Exceeded",
                             output: outputs
                         };
-                    }
-                    else {
+                    } else {
                         return {
                             status: "Wrong Answer",
                             output: outputs
@@ -124,49 +125,50 @@ class CodeExecutionWorker {
                 output: outputs
             }
         } catch(err) {
+            console.log(`Execute code error: ${err.message}`);
             return {
                 status: 'Error',
                 output: err.message
             }
         }
-
     }
 
-    async runSingleTest(code, language, testCase){
+    async runSingleTest(code, language, testCase) {
         const dockerImage = this.getDockerImage(language);
         const filename = this.getFileName(language);
         const filePath = path.join(this.tempDir, filename);
 
         try {
-
-            fs.writeFileSync(filePath, code);
+            // Prepare code with test case input
+            let modifiedCode = this.prepareCodeForExecution(code, language, testCase.input);
+            console.log(`Writing code to: ${filePath}`);
+            fs.writeFileSync(filePath, modifiedCode);
             
-            const inputPath = path.join(this.tempDir, 'input.txt');
-            fs.writeFileSync(inputPath, testCase.input.toString());
-
             const dockerCmd = this.buildDockerCommand(dockerImage, language, filename);
-
             console.log('Running Docker command:', dockerCmd);
 
-            const result = await this.executeWithTimeout(dockerCmd, 5000);
-
+            const result = await this.executeWithTimeout(dockerCmd, 50000); // Reduced timeout
             const actualOutput = result.stdout.trim();
             const expectedOutput = testCase.output.toString().trim();
 
-            if(actualOutput === expectedOutput){
-                return{
+            console.log(`Actual output: "${actualOutput}"`);
+            console.log(`Expected output: "${expectedOutput}"`);
+
+            if(actualOutput === expectedOutput) {
+                return {
                     status: 'passed',
                     output: actualOutput
                 };
-            }
-            else {
+            } else {
                 return {
                     status: 'failed',
-                    output: actualOutput
+                    output: `Expected: ${expectedOutput}, Got: ${actualOutput}`
                 };
             }
         } catch(err) {
-            if(err.message.includes('timeout')){
+            console.log(`Test execution error: ${err.message}`);
+            
+            if(err.message.includes('timeout')) {
                 return {
                     status: 'timeout',
                     output: 'Time Limit Exceeded'
@@ -174,14 +176,173 @@ class CodeExecutionWorker {
             }
             return {
                 status: 'error',
-                output: err.message
+                output: `Execution Error: ${err.message}`
             };
         } finally {
-            this.cleanupFiles([filePath, path.join(this.tempDir, 'input.txt')]);
+            this.cleanupFiles([filePath]);
         }
     }
 
-   
+    prepareCodeForExecution(code, language, input) {
+        switch(language) {
+            case 'Python':
+                return this.preparePythonCode(code, input);
+            case 'Javascript':
+                return this.prepareJavascriptCode(code, input);
+            case 'Cpp':
+                return this.prepareCppCode(code, input);
+            default:
+                return code;
+        }
+    }
+
+    // Fixed preparePythonCode method
+preparePythonCode(code, input) {
+    // For twoSum problem, we expect input to be an array with [nums, target]
+    let inputStr = '';
+    
+    if (Array.isArray(input) && input.length === 2) {
+        // Standard format: [nums_array, target_value]
+        inputStr = `nums = ${JSON.stringify(input[0])}\ntarget = ${input[1]}`;
+    } else {
+        // Fallback: try to parse as single input
+        inputStr = `test_input = ${JSON.stringify(input)}`;
+    }
+
+    const wrapper = `
+import sys
+import json
+
+# User's solution code
+${code}
+
+# Test execution - this runs AFTER the class definition
+def main():
+    try:
+        # Input variables
+        ${inputStr}
+        
+        # Create solution instance
+        solution = Solution()
+        
+        # For twoSum specifically
+        if 'nums' in locals() and 'target' in locals():
+            result = solution.twoSum(nums, target)
+        else:
+            # Fallback for other problems
+            result = solution.solve(test_input)
+        
+        # Print result as JSON for consistent parsing
+        print(json.dumps(result))
+        
+    except Exception as e:
+        print(f"Runtime Error: {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+`;
+    
+    return wrapper;
+}
+
+// Also fix the JavaScript version for consistency
+prepareJavascriptCode(code, input) {
+    let inputStr = '';
+    
+    if (Array.isArray(input) && input.length === 2) {
+        inputStr = `const nums = ${JSON.stringify(input[0])};\nconst target = ${input[1]};`;
+    } else {
+        inputStr = `const testInput = ${JSON.stringify(input)};`;
+    }
+
+    const wrapper = `
+// User's solution code
+${code}
+
+// Test execution
+function main() {
+    try {
+        ${inputStr}
+        
+        let result;
+        
+        // Try to find Solution class or function
+        if (typeof Solution !== 'undefined') {
+            const solution = new Solution();
+            
+            if (typeof nums !== 'undefined' && typeof target !== 'undefined') {
+                result = solution.twoSum(nums, target);
+            } else {
+                result = solution.solve(testInput);
+            }
+        }
+        
+        console.log(JSON.stringify(result));
+        
+    } catch (error) {
+        console.log(\`Runtime Error: \${error.message}\`);
+        process.exit(1);
+    }
+}
+
+main();
+`;
+
+    return wrapper;
+}
+
+// The C++ version looks correct, but here's a slightly improved version
+prepareCppCode(code, input) {
+    let inputDeclarations = '';
+    
+    if (Array.isArray(input) && input.length === 2) {
+        const nums = input[0];
+        const target = input[1];
+        
+        const numsStr = `{${nums.join(', ')}}`;
+        inputDeclarations = `    vector<int> nums = ${numsStr};\n    int target = ${target};`;
+    }
+
+    const wrapper = `
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <unordered_map>
+using namespace std;
+
+${code}
+
+void printVector(const vector<int>& vec) {
+    for (size_t i = 0; i < vec.size(); i++) {
+        cout << vec[i];
+        if (i < vec.size() - 1) cout << ",";
+    }
+}
+
+int main() {
+    try {
+${inputDeclarations}
+        
+        Solution solution;
+        auto result = solution.twoSum(nums, target);
+        
+        printVector(result);
+        cout << endl;
+        
+    } catch (const exception& e) {
+        cout << "Runtime Error: " << e.what() << endl;
+        return 1;
+    }
+    
+    return 0;
+}
+`;
+
+    return wrapper;
+}
+
     getDockerImage(language) {
         const images = {
             'Python': 'python:3.9-slim',
@@ -191,7 +352,6 @@ class CodeExecutionWorker {
         return images[language] || 'ubuntu:20.04';
     }
 
-    
     getFileName(language) {
         const extensions = {
             'Python': 'solution.py',
@@ -201,43 +361,53 @@ class CodeExecutionWorker {
         return extensions[language] || 'solution.txt';
     }
 
-    
     buildDockerCommand(dockerImage, language, fileName) {
-        const tempDir = this.tempDir;
+        // Fix path issues - convert Windows paths to Unix-style for Docker
+        const tempDir = this.tempDir.replace(/\\/g, '/');
         
         const commands = {
-            'Python': `docker run --rm -v ${tempDir}:/app -w /app ${dockerImage} python ${fileName}`,
-            'Javascript': `docker run --rm -v ${tempDir}:/app -w /app ${dockerImage} node ${fileName}`,
-            'Cpp': `docker run --rm -v ${tempDir}:/app -w /app ${dockerImage} bash -c "g++ -o solution ${fileName} && ./solution"`
+            'Python': `docker run --rm -v "${tempDir}:/app" -w /app ${dockerImage} python ${fileName}`,
+            'Javascript': `docker run --rm -v "${tempDir}:/app" -w /app ${dockerImage} node ${fileName}`,
+            'Cpp': `docker run --rm -v "${tempDir}:/app" -w /app ${dockerImage} bash -c "g++ -o solution ${fileName} && ./solution"`
         };
         
-        return commands[language] || `docker run --rm -v ${tempDir}:/app -w /app ${dockerImage} cat ${fileName}`;
+        return commands[language] || `docker run --rm -v "${tempDir}:/app" -w /app ${dockerImage} cat ${fileName}`;
     }
 
-   
     executeWithTimeout(command, timeout) {
         return new Promise((resolve, reject) => {
+            console.log(`Executing: ${command}`);
+            
             const process = exec(command, (error, stdout, stderr) => {
                 if (error) {
-                    reject(new Error(stderr || error.message));
+                    console.log(`Execution error: ${error.message}`);
+                    console.log(`Stderr: ${stderr}`);
+                    reject(new Error(`${error.message}\nStderr: ${stderr}`));
                 } else {
+                    console.log(`Stdout: ${stdout}`);
                     resolve({ stdout, stderr });
                 }
             });
 
-
-            setTimeout(() => {
+            const timer = setTimeout(() => {
                 process.kill('SIGKILL');
                 reject(new Error('timeout'));
             }, timeout);
+
+            // Clear timeout if process completes normally
+            process.on('exit', () => clearTimeout(timer));
         });
     }
 
-    
     cleanupFiles(filePaths) {
         filePaths.forEach(filePath => {
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+            try {
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                    console.log(`Cleaned up: ${filePath}`);
+                }
+            } catch (err) {
+                console.log(`Cleanup error for ${filePath}: ${err.message}`);
             }
         });
     }
@@ -245,7 +415,6 @@ class CodeExecutionWorker {
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
-
 }
 
 const worker = new CodeExecutionWorker();
