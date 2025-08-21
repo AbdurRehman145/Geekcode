@@ -78,7 +78,7 @@ class CodeExecutionWorker {
 
             await Submission.findByIdAndUpdate(submissionId, {
                 status: 'Error',
-                output: err.message
+                output: [err.message]
             })
         }
     }
@@ -101,7 +101,25 @@ class CodeExecutionWorker {
                 const result = await this.runSingleTest(code, language, testCase);
                 
                 console.log(`Test result:`, result);
-                outputs.push(result.output);
+                
+                // Parse the output into array format if it's a comma-separated string
+                let parsedOutput;
+                if (result.status === 'passed' && typeof result.output === 'string' && result.output.includes(',')) {
+                    // Only parse successful outputs
+                    parsedOutput = result.output.split(',').map(item => {
+                        const trimmed = item.trim();
+                        const num = parseInt(trimmed);
+                        return isNaN(num) ? trimmed : num;
+                    });
+                } else if (result.status === 'passed' && typeof result.output === 'string' && !isNaN(result.output)) {
+                    // Single number for successful tests
+                    parsedOutput = [parseInt(result.output)];
+                } else {
+                    // Keep failed tests, errors, and timeouts as strings
+                    parsedOutput = result.output;
+                }
+                
+                outputs.push(parsedOutput);
 
                 if(result.status !== 'passed'){
                     allPassed = false;
@@ -128,7 +146,7 @@ class CodeExecutionWorker {
             console.log(`Execute code error: ${err.message}`);
             return {
                 status: 'Error',
-                output: err.message
+                output: [err.message]
             }
         }
     }
@@ -196,67 +214,75 @@ class CodeExecutionWorker {
         }
     }
 
-    // Fixed preparePythonCode method
-preparePythonCode(code, input) {
-    // For twoSum problem, we expect input to be an array with [nums, target]
+   preparePythonCode(code, input) {
+    // Handle object input format from test cases
     let inputStr = '';
-    
-    if (Array.isArray(input) && input.length === 2) {
-        // Standard format: [nums_array, target_value]
-        inputStr = `nums = ${JSON.stringify(input[0])}\ntarget = ${input[1]}`;
-    } else {
-        // Fallback: try to parse as single input
-        inputStr = `test_input = ${JSON.stringify(input)}`;
+    if (input && typeof input === 'object' && input.nums && input.target !== undefined) {
+        inputStr = `        nums = ${JSON.stringify(input.nums)}\n        target = ${input.target}`;
+    } 
+    // Handle array format [nums, target]
+    else if (Array.isArray(input) && input.length === 2) {
+        inputStr = `        nums = ${JSON.stringify(input[0])}\n        target = ${input[1]}`;
+    } 
+    // Fallback for other formats
+    else {
+        inputStr = `        test_input = ${JSON.stringify(input)}`;
     }
 
-    const wrapper = `
-import sys
-import json
-
+    // Use proper Python indentation - no leading spaces in template literal
+    const wrapper = `import sys
 # User's solution code
 ${code}
 
-# Test execution - this runs AFTER the class definition
+# Test execution
 def main():
     try:
         # Input variables
-        ${inputStr}
+${inputStr}
         
         # Create solution instance
         solution = Solution()
         
-        # For twoSum specifically
+        # Execute the method
         if 'nums' in locals() and 'target' in locals():
             result = solution.twoSum(nums, target)
-        else:
-            # Fallback for other problems
+        elif 'test_input' in locals():
             result = solution.solve(test_input)
+        else:
+            result = []
         
-        # Print result as JSON for consistent parsing
-        print(json.dumps(result))
+        # Format output to match expected format (comma-separated)
+        if isinstance(result, list):
+            print(','.join(map(str, result)))
+        else:
+            print(result)
         
     except Exception as e:
         print(f"Runtime Error: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
-`;
+    main()`;
     
     return wrapper;
 }
+    prepareJavascriptCode(code, input) {
+        let inputStr = '';
+        
+        // Handle object input format from test cases
+        if (input && typeof input === 'object' && input.nums && input.target !== undefined) {
+            inputStr = `const nums = ${JSON.stringify(input.nums)};\nconst target = ${input.target};`;
+        } 
+        // Handle array format [nums, target]
+        else if (Array.isArray(input) && input.length === 2) {
+            inputStr = `const nums = ${JSON.stringify(input[0])};\nconst target = ${input[1]};`;
+        } 
+        // Fallback for other formats
+        else {
+            inputStr = `const testInput = ${JSON.stringify(input)};`;
+        }
 
-// Also fix the JavaScript version for consistency
-prepareJavascriptCode(code, input) {
-    let inputStr = '';
-    
-    if (Array.isArray(input) && input.length === 2) {
-        inputStr = `const nums = ${JSON.stringify(input[0])};\nconst target = ${input[1]};`;
-    } else {
-        inputStr = `const testInput = ${JSON.stringify(input)};`;
-    }
-
-    const wrapper = `
+        const wrapper = `
 // User's solution code
 ${code}
 
@@ -273,12 +299,17 @@ function main() {
             
             if (typeof nums !== 'undefined' && typeof target !== 'undefined') {
                 result = solution.twoSum(nums, target);
-            } else {
+            } else if (typeof testInput !== 'undefined') {
                 result = solution.solve(testInput);
             }
         }
         
-        console.log(JSON.stringify(result));
+        // Format output to match expected format (comma-separated without brackets)
+        if (Array.isArray(result)) {
+            console.log(result.join(','));
+        } else {
+            console.log(result);
+        }
         
     } catch (error) {
         console.log(\`Runtime Error: \${error.message}\`);
@@ -289,22 +320,28 @@ function main() {
 main();
 `;
 
-    return wrapper;
-}
-
-// The C++ version looks correct, but here's a slightly improved version
-prepareCppCode(code, input) {
-    let inputDeclarations = '';
-    
-    if (Array.isArray(input) && input.length === 2) {
-        const nums = input[0];
-        const target = input[1];
-        
-        const numsStr = `{${nums.join(', ')}}`;
-        inputDeclarations = `    vector<int> nums = ${numsStr};\n    int target = ${target};`;
+        return wrapper;
     }
 
-    const wrapper = `
+    prepareCppCode(code, input) {
+        let inputDeclarations = '';
+        
+        // Handle object input format from test cases
+        if (input && typeof input === 'object' && input.nums && input.target !== undefined) {
+            const nums = input.nums;
+            const target = input.target;
+            const numsStr = `{${nums.join(', ')}}`;
+            inputDeclarations = `    vector<int> nums = ${numsStr};\n    int target = ${target};`;
+        }
+        // Handle array format [nums, target]  
+        else if (Array.isArray(input) && input.length === 2) {
+            const nums = input[0];
+            const target = input[1];
+            const numsStr = `{${nums.join(', ')}}`;
+            inputDeclarations = `    vector<int> nums = ${numsStr};\n    int target = ${target};`;
+        }
+
+        const wrapper = `
 #include <iostream>
 #include <vector>
 #include <string>
@@ -340,8 +377,8 @@ ${inputDeclarations}
 }
 `;
 
-    return wrapper;
-}
+        return wrapper;
+    }
 
     getDockerImage(language) {
         const images = {

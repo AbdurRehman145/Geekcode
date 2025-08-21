@@ -12,18 +12,14 @@ const submissionSchema = new mongoose.Schema({
     },
     code: {
         type: String,
-        required: true
+        requred: true
     },
     status: {
         type: String,
         enum: ["Pending", "Processing", "Accepted", "Time Limit Exceeded", "Wrong Answer", "Error"],
         required: true
     },
-    output: [
-        {
-            type: String
-        }
-    ],
+    output: [mongoose.Schema.Types.Mixed],
     submittedAt:{
         type: Date,
         default: () => new Date()
