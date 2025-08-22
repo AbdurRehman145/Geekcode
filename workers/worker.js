@@ -98,7 +98,7 @@ class CodeExecutionWorker {
                 console.log(`Test case input:`, testCase.input);
                 console.log(`Expected output:`, testCase.output);
 
-                const result = await this.runSingleTest(code, language, testCase);
+                const result = await this.runSingleTest(code, language, testCase, problem);
                 
                 console.log(`Test result:`, result);
                 
@@ -151,14 +151,14 @@ class CodeExecutionWorker {
         }
     }
 
-    async runSingleTest(code, language, testCase) {
+    async runSingleTest(code, language, testCase, problem) {
         const dockerImage = this.getDockerImage(language);
         const filename = this.getFileName(language);
         const filePath = path.join(this.tempDir, filename);
 
         try {
             // Prepare code with test case input
-            let modifiedCode = this.prepareCodeForExecution(code, language, testCase.input);
+            let modifiedCode = this.prepareCodeForExecution(code, language, testCase.input, problem.functionMetadata);
             console.log(`Writing code to: ${filePath}`);
             fs.writeFileSync(filePath, modifiedCode);
             
@@ -201,110 +201,85 @@ class CodeExecutionWorker {
         }
     }
 
-    prepareCodeForExecution(code, language, input) {
+    prepareCodeForExecution(code, language, input, functionMetadata) {
         switch(language) {
             case 'Python':
-                return this.preparePythonCode(code, input);
+                return this.preparePythonCode(code, input, functionMetadata);
             case 'Javascript':
-                return this.prepareJavascriptCode(code, input);
+                return this.prepareJavascriptCode(code, input, functionMetadata);
             case 'Cpp':
-                return this.prepareCppCode(code, input);
+                return this.prepareCppCode(code, input, functionMetadata);
             default:
-                return code;
+                throw new Error(`Unsupported language: ${language}`);
         }
     }
 
-   preparePythonCode(code, input) {
-    // Handle object input format from test cases
-    let inputStr = '';
-    if (input && typeof input === 'object' && input.nums && input.target !== undefined) {
-        inputStr = `        nums = ${JSON.stringify(input.nums)}\n        target = ${input.target}`;
-    } 
-    // Handle array format [nums, target]
-    else if (Array.isArray(input) && input.length === 2) {
-        inputStr = `        nums = ${JSON.stringify(input[0])}\n        target = ${input[1]}`;
-    } 
-    // Fallback for other formats
-    else {
-        inputStr = `        test_input = ${JSON.stringify(input)}`;
-    }
+   preparePythonCode(code, input, metadata) {
+    // Dynamically create variable assignments from input array and metadata
+    const inputAssignments = metadata.parameters
+        .map((param, index) => `${param.name} = ${JSON.stringify(input[index])}`)
+        .join('\n');
 
-    // Use proper Python indentation - no leading spaces in template literal
-    const wrapper = `import sys
+    const functionCall = `solution.${metadata.name}(${metadata.parameters.map(p => p.name).join(', ')})`;
+
+    const wrapper = `
+import sys
+import json
+
 # User's solution code
 ${code}
 
 # Test execution
 def main():
     try:
-        # Input variables
-${inputStr}
-        
-        # Create solution instance
         solution = Solution()
         
-        # Execute the method
-        if 'nums' in locals() and 'target' in locals():
-            result = solution.twoSum(nums, target)
-        elif 'test_input' in locals():
-            result = solution.solve(test_input)
-        else:
-            result = []
+        # Input variables are prepared dynamically
+${inputAssignments}
         
-        # Format output to match expected format (comma-separated)
+        # Function call is prepared dynamically
+        result = ${functionCall}
+        
+        # Format output for consistency
         if isinstance(result, list):
+            # For lists, print as a comma-separated string
             print(','.join(map(str, result)))
         else:
             print(result)
-        
+            
     except Exception as e:
-        print(f"Runtime Error: {str(e)}")
+        print(f"Runtime Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()`;
-    
+    main()
+`;
     return wrapper;
 }
-    prepareJavascriptCode(code, input) {
-        let inputStr = '';
-        
-        // Handle object input format from test cases
-        if (input && typeof input === 'object' && input.nums && input.target !== undefined) {
-            inputStr = `const nums = ${JSON.stringify(input.nums)};\nconst target = ${input.target};`;
-        } 
-        // Handle array format [nums, target]
-        else if (Array.isArray(input) && input.length === 2) {
-            inputStr = `const nums = ${JSON.stringify(input[0])};\nconst target = ${input[1]};`;
-        } 
-        // Fallback for other formats
-        else {
-            inputStr = `const testInput = ${JSON.stringify(input)};`;
-        }
 
-        const wrapper = `
+prepareJavascriptCode(code, input, metadata) {
+    const inputAssignments = metadata.parameters
+        .map((param, index) => `const ${param.name} = ${JSON.stringify(input[index])};`)
+        .join('\n');
+    
+    const functionCall = `solution.${metadata.name}(${metadata.parameters.map(p => p.name).join(', ')})`;
+
+    const wrapper = `
 // User's solution code
 ${code}
 
 // Test execution
 function main() {
     try {
-        ${inputStr}
+        const solution = new Solution();
         
-        let result;
+        // Input variables
+${inputAssignments}
         
-        // Try to find Solution class or function
-        if (typeof Solution !== 'undefined') {
-            const solution = new Solution();
-            
-            if (typeof nums !== 'undefined' && typeof target !== 'undefined') {
-                result = solution.twoSum(nums, target);
-            } else if (typeof testInput !== 'undefined') {
-                result = solution.solve(testInput);
-            }
-        }
+        // Dynamic function call
+        const result = ${functionCall};
         
-        // Format output to match expected format (comma-separated without brackets)
+        // Format output
         if (Array.isArray(result)) {
             console.log(result.join(','));
         } else {
@@ -312,73 +287,85 @@ function main() {
         }
         
     } catch (error) {
-        console.log(\`Runtime Error: \${error.message}\`);
+        console.error(\`Runtime Error: \${error.message}\`);
         process.exit(1);
     }
 }
 
 main();
 `;
+    return wrapper;
+}
 
-        return wrapper;
-    }
+prepareCppCode(code, input, metadata) {
+    // This is more complex due to C++'s static typing.
+    // We'll map JS types to C++ types. Extend this map as needed.
+    const typeMap = {
+        'number': 'int',
+        'string': 'string',
+        'array': 'vector<int>' // Assuming array of ints for now
+    };
 
-    prepareCppCode(code, input) {
-        let inputDeclarations = '';
-        
-        // Handle object input format from test cases
-        if (input && typeof input === 'object' && input.nums && input.target !== undefined) {
-            const nums = input.nums;
-            const target = input.target;
-            const numsStr = `{${nums.join(', ')}}`;
-            inputDeclarations = `    vector<int> nums = ${numsStr};\n    int target = ${target};`;
+    const inputDeclarations = metadata.parameters.map((param, index) => {
+        const cppType = typeMap[param.type];
+        if (param.type === 'array') {
+            return `${cppType} ${param.name} = {${input[index].join(', ')}};`;
         }
-        // Handle array format [nums, target]  
-        else if (Array.isArray(input) && input.length === 2) {
-            const nums = input[0];
-            const target = input[1];
-            const numsStr = `{${nums.join(', ')}}`;
-            inputDeclarations = `    vector<int> nums = ${numsStr};\n    int target = ${target};`;
-        }
+        return `${cppType} ${param.name} = ${JSON.stringify(input[index])};`;
+    }).join('\n    ');
 
-        const wrapper = `
+    const functionCall = `solution.${metadata.name}(${metadata.parameters.map(p => p.name).join(', ')})`;
+
+    // Note: The printVector function needs to be generic too.
+    const wrapper = `
 #include <iostream>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
+
 using namespace std;
 
-${code}
-
-void printVector(const vector<int>& vec) {
+// Generic vector printer for int
+void printResult(const vector<int>& vec) {
     for (size_t i = 0; i < vec.size(); i++) {
         cout << vec[i];
         if (i < vec.size() - 1) cout << ",";
     }
 }
 
+// Overload for other types
+void printResult(int val) { cout << val; }
+void printResult(const string& val) { cout << val; }
+void printResult(bool val) { cout << (val ? "true" : "false"); }
+
+${code}
+
 int main() {
     try {
-${inputDeclarations}
-        
         Solution solution;
-        auto result = solution.twoSum(nums, target);
         
-        printVector(result);
+        // Dynamically declare and initialize variables
+        ${inputDeclarations}
+        
+        // Dynamically call the correct function
+        auto result = ${functionCall};
+        
+        printResult(result);
         cout << endl;
         
     } catch (const exception& e) {
-        cout << "Runtime Error: " << e.what() << endl;
+        cerr << "Runtime Error: " << e.what() << endl;
         return 1;
     }
     
     return 0;
 }
 `;
+    return wrapper;
+}
 
-        return wrapper;
-    }
 
     getDockerImage(language) {
         const images = {

@@ -1,5 +1,13 @@
 const mongoose = require('mongoose');
 
+const functionMetadataSchema = new mongoose.Schema({
+    name: { type: String, required: true }, 
+    parameters: [{
+        name: { type: String, required: true },
+        type: { type: String, required: true }  
+    }]
+}, { _id: false });
+
 const problemSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -33,7 +41,11 @@ const problemSchema = new mongoose.Schema({
             input: mongoose.Schema.Types.Mixed,
             output: mongoose.Schema.Types.Mixed
         }
-    ]
+    ],
+    functionMetadata: {
+        type: functionMetadataSchema,
+        required: true
+    }
 })
 
 

@@ -10,7 +10,7 @@ const MONGO_URI = "mongodb://localhost:27017/Geekcode";
 // --- Problems Data ---
 const problems = [
     // ==================================================
-    //                  EASY PROBLEMS (4)
+    //                  EASY PROBLEMS (2)
     // ==================================================
     {
         title: "Two Sum",
@@ -23,25 +23,36 @@ const problems = [
 public:
     vector<int> twoSum(vector<int>& nums, int target) {
         // Your code here
+        return {};
     }
 };`,
-            Javascript: `/**
- * @param {number[]} nums
- * @param {number} target
- * @return {number[]}
- */
-var twoSum = function(nums, target) {
-    // Your code here
-};`,
+            Javascript: `class Solution {
+    /**
+     * @param {number[]} nums
+     * @param {number} target
+     * @return {number[]}
+     */
+    twoSum(nums, target) {
+        // Your code here
+    }
+}`,
             Python: `class Solution:
-    def twoSum(self, nums: List[int], target: int) -> List[int]:
-        # Your code here`
+    def twoSum(self, nums, target):
+        # Your code here
+        pass`
         },
         testCases: [
-            { input: { nums: [2, 7, 11, 15], target: 9 }, output: [0, 1] },
-            { input: { nums: [3, 2, 4], target: 6 }, output: [1, 2] },
-            { input: { nums: [3, 3], target: 6 }, output: [0, 1] }
-        ]
+            { input: [[2, 7, 11, 15], 9], output: [0, 1] },
+            { input: [[3, 2, 4], 6], output: [1, 2] },
+            { input: [[3, 3], 6], output: [0, 1] }
+        ],
+        functionMetadata: {
+            name: "twoSum",
+            parameters: [
+                { name: "nums", type: "array" },
+                { name: "target", type: "number" }
+            ]
+        }
     },
     {
         title: "Contains Duplicate",
@@ -54,119 +65,41 @@ var twoSum = function(nums, target) {
 public:
     bool containsDuplicate(vector<int>& nums) {
         // Your code here
+        return false;
     }
 };`,
-            Javascript: `/**
- * @param {number[]} nums
- * @return {boolean}
- */
-var containsDuplicate = function(nums) {
-    // Your code here
-};`,
-            Python: `class Solution:
-    def containsDuplicate(self, nums: List[int]) -> bool:
-        # Your code here`
-        },
-        testCases: [
-            { input: { nums: [1, 2, 3, 1] }, output: true },
-            { input: { nums: [1, 2, 3, 4] }, output: false },
-            { input: { nums: [1, 1, 1, 3, 3, 4, 3, 2, 4, 2] }, output: true }
-        ]
-    },
-    {
-        title: "Best Time to Buy and Sell Stock",
-        description: `You are given an array \`prices\` where \`prices[i]\` is the price of a given stock on the \`i\`-th day. You want to maximize your profit by choosing a **single day** to buy one stock and choosing a **different day in the future** to sell that stock. Return the maximum profit you can achieve from this transaction. If you cannot achieve any profit, return 0.`,
-        difficulty: "Easy",
-        category: "Array",
-        prerequisites: ["Array Iteration", "Two Pointers"],
-        starterCode: {
-            Cpp: `class Solution {
-public:
-    int maxProfit(vector<int>& prices) {
+            Javascript: `class Solution {
+    /**
+     * @param {number[]} nums
+     * @return {boolean}
+     */
+    containsDuplicate(nums) {
         // Your code here
     }
-};`,
-            Javascript: `/**
- * @param {number[]} prices
- * @return {number}
- */
-var maxProfit = function(prices) {
-    // Your code here
-};`,
+}`,
             Python: `class Solution:
-    def maxProfit(self, prices: List[int]) -> int:
-        # Your code here`
+    def containsDuplicate(self, nums):
+        # Your code here
+        pass`
         },
         testCases: [
-            { input: { prices: [7, 1, 5, 3, 6, 4] }, output: 5 },
-            { input: { prices: [7, 6, 4, 3, 1] }, output: 0 }
-        ]
-    },
-    {
-        title: "Remove Duplicates from Sorted Array",
-        description: `Given an integer array \`nums\` sorted in **non-decreasing order**, remove the duplicates **in-place** such that each unique element appears only **once**. The relative order of the elements should be kept the **same**. Return \`k\`, the number of unique elements in \`nums\`.`,
-        difficulty: "Easy",
-        category: "Array",
-        prerequisites: ["Array Manipulation", "Two Pointers"],
-        starterCode: {
-            Cpp: `class Solution {
-public:
-    int removeDuplicates(vector<int>& nums) {
-        // Your code here
-    }
-};`,
-            Javascript: `/**
- * @param {number[]} nums
- * @return {number}
- */
-var removeDuplicates = function(nums) {
-    // Your code here
-};`,
-            Python: `class Solution:
-    def removeDuplicates(self, nums: List[int]) -> int:
-        # Your code here`
-        },
-        testCases: [
-            { input: { nums: [1, 1, 2] }, output: 2 },
-            { input: { nums: [0, 0, 1, 1, 1, 2, 2, 3, 3, 4] }, output: 5 }
-        ]
+            { input: [[1, 2, 3, 1]], output: true },
+            { input: [[1, 2, 3, 4]], output: false },
+            { input: [[1, 1, 1, 3, 3, 4, 3, 2, 4, 2]], output: true }
+        ],
+        functionMetadata: {
+            name: "containsDuplicate",
+            parameters: [
+                { name: "nums", type: "array" }
+            ]
+        }
     },
     // ==================================================
-    //                  MEDIUM PROBLEMS (3)
+    //                  MEDIUM PROBLEMS (2)
     // ==================================================
-    {
-        title: "3Sum",
-        description: `Given an integer array \`nums\`, return all the triplets \`[nums[i], nums[j], nums[k]]\` such that \`i != j\`, \`i != k\`, and \`j != k\`, and \`nums[i] + nums[j] + nums[k] == 0\`. Notice that the solution set must not contain duplicate triplets.`,
-        difficulty: "Medium",
-        category: "Array",
-        prerequisites: ["Array Sorting", "Two Pointers"],
-        starterCode: {
-            Cpp: `class Solution {
-public:
-    vector<vector<int>> threeSum(vector<int>& nums) {
-        // Your code here
-    }
-};`,
-            Javascript: `/**
- * @param {number[]} nums
- * @return {number[][]}
- */
-var threeSum = function(nums) {
-    // Your code here
-};`,
-            Python: `class Solution:
-    def threeSum(self, nums: List[int]) -> List[List[int]]:
-        # Your code here`
-        },
-        testCases: [
-            { input: { nums: [-1, 0, 1, 2, -1, -4] }, output: [[-1, -1, 2], [-1, 0, 1]] },
-            { input: { nums: [0, 1, 1] }, output: [] },
-            { input: { nums: [0, 0, 0] }, output: [[0, 0, 0]] }
-        ]
-    },
     {
         title: "Product of Array Except Self",
-        description: `Given an integer array \`nums\`, return an array \`answer\` such that \`answer[i]\` is equal to the product of all the elements of \`nums\` except \`nums[i]\`. The product of any prefix or suffix of \`nums\` is **guaranteed** to fit in a **32-bit** integer. You must write an algorithm that runs in $O(n)$ time and without using the division operation.`,
+        description: `Given an integer array \`nums\`, return an array \`answer\` such that \`answer[i]\` is equal to the product of all the elements of \`nums\` except \`nums[i]\`. The product of any prefix or suffix of \`nums\` is **guaranteed** to fit in a **32-bit** integer. You must write an algorithm that runs in O(n) time and without using the division operation.`,
         difficulty: "Medium",
         category: "Array",
         prerequisites: ["Array Iteration", "Prefix/Suffix Products"],
@@ -175,23 +108,33 @@ var threeSum = function(nums) {
 public:
     vector<int> productExceptSelf(vector<int>& nums) {
         // Your code here
+        return {};
     }
 };`,
-            Javascript: `/**
- * @param {number[]} nums
- * @return {number[]}
- */
-var productExceptSelf = function(nums) {
-    // Your code here
-};`,
+            Javascript: `class Solution {
+    /**
+     * @param {number[]} nums
+     * @return {number[]}
+     */
+    productExceptSelf(nums) {
+        // Your code here
+    }
+}`,
             Python: `class Solution:
-    def productExceptSelf(self, nums: List[int]) -> List[int]:
-        # Your code here`
+    def productExceptSelf(self, nums):
+        # Your code here
+        pass`
         },
         testCases: [
-            { input: { nums: [1, 2, 3, 4] }, output: [24, 12, 8, 6] },
-            { input: { nums: [-1, 1, 0, -3, 3] }, output: [0, 0, 9, 0, 0] }
-        ]
+            { input: [[1, 2, 3, 4]], output: [24, 12, 8, 6] },
+            { input: [[-1, 1, 0, -3, 3]], output: [0, 0, 9, 0, 0] }
+        ],
+        functionMetadata: {
+            name: "productExceptSelf",
+            parameters: [
+                { name: "nums", type: "array" }
+            ]
+        }
     },
     {
         title: "Container With Most Water",
@@ -204,26 +147,36 @@ var productExceptSelf = function(nums) {
 public:
     int maxArea(vector<int>& height) {
         // Your code here
+        return 0;
     }
 };`,
-            Javascript: `/**
- * @param {number[]} height
- * @return {number}
- */
-var maxArea = function(height) {
-    // Your code here
-};`,
+            Javascript: `class Solution {
+    /**
+     * @param {number[]} height
+     * @return {number}
+     */
+    maxArea(height) {
+        // Your code here
+    }
+}`,
             Python: `class Solution:
-    def maxArea(self, height: List[int]) -> int:
-        # Your code here`
+    def maxArea(self, height):
+        # Your code here
+        pass`
         },
         testCases: [
-            { input: { height: [1, 8, 6, 2, 5, 4, 8, 3, 7] }, output: 49 },
-            { input: { height: [1, 1] }, output: 1 }
-        ]
+            { input: [[1, 8, 6, 2, 5, 4, 8, 3, 7]], output: 49 },
+            { input: [[1, 1]], output: 1 }
+        ],
+        functionMetadata: {
+            name: "maxArea",
+            parameters: [
+                { name: "height", type: "array" }
+            ]
+        }
     },
     // ==================================================
-    //                   HARD PROBLEMS (3)
+    //                   HARD PROBLEM (1)
     // ==================================================
     {
         title: "Trapping Rain Water",
@@ -236,86 +189,36 @@ var maxArea = function(height) {
 public:
     int trap(vector<int>& height) {
         // Your code here
+        return 0;
     }
 };`,
-            Javascript: `/**
- * @param {number[]} height
- * @return {number}
- */
-var trap = function(height) {
-    // Your code here
-};`,
-            Python: `class Solution:
-    def trap(self, height: List[int]) -> int:
-        # Your code here`
-        },
-        testCases: [
-            { input: { height: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1] }, output: 6 },
-            { input: { height: [4, 2, 0, 3, 2, 5] }, output: 9 }
-        ]
-    },
-    {
-        title: "Median of Two Sorted Arrays",
-        description: `Given two sorted arrays \`nums1\` and \`nums2\` of size \`m\` and \`n\` respectively, return **the median** of the two sorted arrays. The overall run time complexity should be $O(\log(m+n))$.`,
-        difficulty: "Hard",
-        category: "Array",
-        prerequisites: ["Binary Search", "Array Partitioning"],
-        starterCode: {
-            Cpp: `class Solution {
-public:
-    double findMedianSortedArrays(vector<int>& nums1, vector<int>& nums2) {
+            Javascript: `class Solution {
+    /**
+     * @param {number[]} height
+     * @return {number}
+     */
+    trap(height) {
         // Your code here
     }
-};`,
-            Javascript: `/**
- * @param {number[]} nums1
- * @param {number[]} nums2
- * @return {number}
- */
-var findMedianSortedArrays = function(nums1, nums2) {
-    // Your code here
-};`,
+}`,
             Python: `class Solution:
-    def findMedianSortedArrays(self, nums1: List[int], nums2: List[int]) -> float:
-        # Your code here`
+    def trap(self, height):
+        # Your code here
+        pass`
         },
         testCases: [
-            { input: { nums1: [1, 3], nums2: [2] }, output: 2.0 },
-            { input: { nums1: [1, 2], nums2: [3, 4] }, output: 2.5 }
-        ]
-    },
-    {
-        title: "First Missing Positive",
-        description: `Given an unsorted integer array \`nums\`, return the smallest missing positive integer. You must implement an algorithm that runs in $O(n)$ time and uses $O(1)$ auxiliary space.`,
-        difficulty: "Hard",
-        category: "Array",
-        prerequisites: ["Array as Hash Map", "Cyclic Sort"],
-        starterCode: {
-            Cpp: `class Solution {
-public:
-    int firstMissingPositive(vector<int>& nums) {
-        // Your code here
-    }
-};`,
-            Javascript: `/**
- * @param {number[]} nums
- * @return {number}
- */
-var firstMissingPositive = function(nums) {
-    // Your code here
-};`,
-            Python: `class Solution:
-    def firstMissingPositive(self, nums: List[int]) -> int:
-        # Your code here`
-        },
-        testCases: [
-            { input: { nums: [1, 2, 0] }, output: 3 },
-            { input: { nums: [3, 4, -1, 1] }, output: 2 },
-            { input: { nums: [7, 8, 9, 11, 12] }, output: 1 }
-        ]
+            { input: [[0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]], output: 6 },
+            { input: [[4, 2, 0, 3, 2, 5]], output: 9 },
+            { input: [[3, 0, 2, 0, 4]], output: 7 }
+        ],
+        functionMetadata: {
+            name: "trap",
+            parameters: [
+                { name: "height", type: "array" }
+            ]
+        }
     }
 ];
-
 
 // --- Seeding Function ---
 const seedDB = async () => {
@@ -323,9 +226,20 @@ const seedDB = async () => {
         await mongoose.connect(MONGO_URI);
         console.log("MongoDB connection successful. 👍");
 
-        console.log("Seeding new problems...");
+        // Clear existing problems (optional - remove this if you want to keep existing data)
+        console.log("Clearing existing problems...");
+        await Problem.deleteMany({ category: "Array" });
+
+        console.log("Seeding new array problems...");
         await Problem.insertMany(problems);
-        console.log(`Successfully seeded ${problems.length} problems! 🌱`);
+        console.log(`Successfully seeded ${problems.length} array problems! 🌱`);
+
+        // Display seeded problems summary
+        console.log("\n📊 Seeded Problems Summary:");
+        console.log("Easy: 2 problems");
+        console.log("Medium: 2 problems");
+        console.log("Hard: 1 problem");
+        console.log("Total: 5 problems");
 
     } catch (error) {
         console.error("Error seeding database: ", error);
