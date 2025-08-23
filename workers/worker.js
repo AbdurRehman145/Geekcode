@@ -217,7 +217,7 @@ class CodeExecutionWorker {
    preparePythonCode(code, input, metadata) {
     // Dynamically create variable assignments from input array and metadata
     const inputAssignments = metadata.parameters
-        .map((param, index) => `${param.name} = ${JSON.stringify(input[index])}`)
+        .map((param, index) => `        ${param.name} = ${JSON.stringify(input[index])}`)
         .join('\n');
 
     const functionCall = `solution.${metadata.name}(${metadata.parameters.map(p => p.name).join(', ')})`;
@@ -244,6 +244,9 @@ ${inputAssignments}
         if isinstance(result, list):
             # For lists, print as a comma-separated string
             print(','.join(map(str, result)))
+        elif isinstance(result, bool):
+            # Convert Python boolean to lowercase string
+            print(str(result).lower())
         else:
             print(result)
             
@@ -339,6 +342,20 @@ void printResult(const vector<int>& vec) {
 void printResult(int val) { cout << val; }
 void printResult(const string& val) { cout << val; }
 void printResult(bool val) { cout << (val ? "true" : "false"); }
+// Add this overload to handle vector<vector<int>> (2D arrays)
+void printResult(const vector<vector<int>>& vec2d) {
+    cout << "[";
+    for (size_t i = 0; i < vec2d.size(); i++) {
+        cout << "[";
+        for (size_t j = 0; j < vec2d[i].size(); j++) {
+            cout << vec2d[i][j];
+            if (j < vec2d[i].size() - 1) cout << ",";
+        }
+        cout << "]";
+        if (i < vec2d.size() - 1) cout << ",";
+    }
+    cout << "]";
+}
 
 ${code}
 
