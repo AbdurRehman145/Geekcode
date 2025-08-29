@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 // Make sure to import your Problem model correctly
 // Assuming your model is in './models/Problem.js'
-const Problem = require('./models/Problem');
+const Problem = require('../models/Problem');
 
 // --- Configuration ---
 // Replace with your MongoDB connection string
@@ -9,9 +9,6 @@ const MONGO_URI = "mongodb://localhost:27017/Geekcode";
 
 // --- Problems Data ---
 const problems = [
-    // ==================================================
-    //                  EASY PROBLEMS (2)
-    // ==================================================
     {
         title: "Two Sum",
         description: `Given an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers such that they add up to \`target\`. You may assume that each input would have **exactly one solution**, and you may not use the same element twice. You can return the answer in any order.`,
@@ -94,9 +91,6 @@ public:
             ]
         }
     },
-    // ==================================================
-    //                  MEDIUM PROBLEMS (2)
-    // ==================================================
     {
         title: "Product of Array Except Self",
         description: `Given an integer array \`nums\`, return an array \`answer\` such that \`answer[i]\` is equal to the product of all the elements of \`nums\` except \`nums[i]\`. The product of any prefix or suffix of \`nums\` is **guaranteed** to fit in a **32-bit** integer. You must write an algorithm that runs in O(n) time and without using the division operation.`,
@@ -137,84 +131,87 @@ public:
         }
     },
     {
-        title: "Container With Most Water",
-        description: `You are given an integer array \`height\` of length \`n\`. There are \`n\` vertical lines drawn such that the two endpoints of the \`i\`-th line are \`(i, 0)\` and \`(i, height[i])\`. Find two lines that together with the x-axis form a container, such that the container contains the most water. Return the maximum amount of water a container can store.`,
+        title: "Longest Consecutive Sequence",
+        description: `Given an unsorted array of integers \`nums\`, return the length of the longest consecutive elements sequence. You must write an algorithm that runs in O(n) time.`,
         difficulty: "Medium",
         category: "Array",
-        prerequisites: ["Two Pointers", "Greedy Algorithm"],
+        prerequisites: ["Hash Sets", "Array Iteration", "Sequence Detection"],
         starterCode: {
             Cpp: `class Solution {
 public:
-    int maxArea(vector<int>& height) {
+    int longestConsecutive(vector<int>& nums) {
         // Your code here
         return 0;
     }
 };`,
             Javascript: `class Solution {
     /**
-     * @param {number[]} height
+     * @param {number[]} nums
      * @return {number}
      */
-    maxArea(height) {
+    longestConsecutive(nums) {
         // Your code here
     }
 }`,
             Python: `class Solution:
-    def maxArea(self, height):
+    def longestConsecutive(self, nums):
         # Your code here
         pass`
         },
         testCases: [
-            { input: [[1, 8, 6, 2, 5, 4, 8, 3, 7]], output: 49 },
-            { input: [[1, 1]], output: 1 }
+            { input: [[100, 4, 200, 1, 3, 2]], output: 4 },
+            { input: [[0, 3, 7, 2, 5, 8, 4, 6, 0, 1]], output: 9 },
+            { input: [[]], output: 0 },
+            { input: [[9, 1, 4, 7, 3, -1, 0, 5, 8, -1, 6]], output: 7 }
         ],
         functionMetadata: {
-            name: "maxArea",
+            name: "longestConsecutive",
             parameters: [
-                { name: "height", type: "array" }
+                { name: "nums", type: "array" }
             ]
         }
     },
-    // ==================================================
-    //                   HARD PROBLEM (1)
-    // ==================================================
     {
-        title: "Trapping Rain Water",
-        description: `Given \`n\` non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.`,
-        difficulty: "Hard",
+        title: "Valid Anagram",
+        description: `Given two strings \`s\` and \`t\`, return \`true\` if \`t\` is an anagram of \`s\`, and \`false\` otherwise. An **anagram** is a word or phrase formed by rearranging the letters of a different word or phrase, typically using all the original letters exactly once.`,
+        difficulty: "Easy",
         category: "Array",
-        prerequisites: ["Two Pointers", "Dynamic Programming", "Stack"],
+        prerequisites: ["Hash Maps", "String Manipulation", "Character Counting"],
         starterCode: {
             Cpp: `class Solution {
 public:
-    int trap(vector<int>& height) {
+    bool isAnagram(string s, string t) {
         // Your code here
-        return 0;
+        return false;
     }
 };`,
             Javascript: `class Solution {
     /**
-     * @param {number[]} height
-     * @return {number}
+     * @param {string} s
+     * @param {string} t
+     * @return {boolean}
      */
-    trap(height) {
+    isAnagram(s, t) {
         // Your code here
     }
 }`,
             Python: `class Solution:
-    def trap(self, height):
+    def isAnagram(self, s, t):
         # Your code here
         pass`
         },
         testCases: [
-            { input: [[0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]], output: 6 },
-            { input: [[4, 2, 0, 3, 2, 5]], output: 9 },
-            { input: [[3, 0, 2, 0, 4]], output: 7 }
+            { input: ["anagram", "nagaram"], output: true },
+            { input: ["rat", "car"], output: false },
+            { input: ["listen", "silent"], output: true },
+            { input: ["hello", "bello"], output: false },
+            { input: ["a", "ab"], output: false }
         ],
         functionMetadata: {
-            name: "trap",
+            name: "isAnagram",
             parameters: [
-                { name: "height", type: "array" }
+                { name: "s", type: "string" },
+                { name: "t", type: "string" }
             ]
         }
     }
@@ -236,9 +233,8 @@ const seedDB = async () => {
 
         // Display seeded problems summary
         console.log("\n📊 Seeded Problems Summary:");
-        console.log("Easy: 2 problems");
+        console.log("Easy: 3 problems");
         console.log("Medium: 2 problems");
-        console.log("Hard: 1 problem");
         console.log("Total: 5 problems");
 
     } catch (error) {
